@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <title>title</title>
+  </head>
+  <body>
+    <!-- page content -->
+    <div id="test1">
+      <div><input data-bind="textInput: test1" /> </div>
+      <div data-bind="text: test1">Should disappear </div>
+    </div>
+    <div id="test2">
+      <div data-bind="foreach: {data: coll, as: 'colli'} ">
+        <div data-bind="text: colli.h"></div>
+      </div>
+    </div>
+
+    <script src="./jquery.1.11.2.debug.js"></script>  
+    <script src="./underscore.1.7.0.debug.js"></script>
+    <script src="./backbone.1.1.2.debug.js"></script>
+    <script src="./knockout.3.2.0.debug.js"></script>
+    <script src="./knockout.mapping.2.4.1.debug.js"></script>
+    <script src="./knockup.0.0.1.debug.js"></script>
+    <script src="./test.js"></script>
+  </body>
+</html>
