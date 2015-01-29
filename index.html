@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="">
+  <meta name="author" content="">
+
+  <title>Knockup Tests</title>
+
+  <!-- Bootstrap Core CSS -->
+  <link href="css/bootstrap.min.css" rel="stylesheet">
+
+  <!-- Custom CSS -->
+  <style>
+  body {
+    padding-top: 70px;
+    /* Required padding for .navbar-fixed-top. Remove if using .navbar-static-top. Change if height of navigation changes. */
+  }
+  </style>
+
+  <!-- HTML5 Shim and Respond.js IE8 support of HTML5 elements and media queries -->
+  <!-- WARNING: Respond.js doesn't work if you view the page via file:// -->
+  <!--[if lt IE 9]>
+    <script src="https://oss.maxcdn.com/libs/html5shiv/3.7.0/html5shiv.js"></script>
+    <script src="https://oss.maxcdn.com/libs/respond.js/1.4.2/respond.min.js"></script>
+  <![endif]-->
+
+</head>
+
+<body>
+  <!-- Page Content -->
+  <div class="container">
+
+    <div class="row">
+      <div class="col-lg-6 text-center">
+        <div id="test1">
+          <div><input data-bind="textInput: test1" /> </div>
+          <div data-bind="text: test1">Should disappear </div>
+          <div><input data-bind="textInput: inception.innard" /> </div>
+          <div data-bind="text: inception.innard">Should disappear </div>
+        </div>
+      </div>
+      <div class="col-lg-6 text-center">
+        <div id="test1-bb">
+          <pre></pre>
+        </div>
+      </div>
+    </div>
+    <!-- /.row -->
+
+    <div class="row">
+      <div class="col-lg-6 text-center">
+        <div id="test2">
+          <div data-bind="foreach: {data: coll, as: 'colli'} ">
+            <input data-bind="textInput: colli.h">
+
+          </div>
+        </div>
+      </div>
+      <div class="col-lg-6 text-center">
+        <div id="test2-bb">
+          <pre></pre>
+        </div>
+      </div>
+    </div>
+    <!-- /.row -->
+
+  </div>
+  <!-- /.container -->
+
+  <!-- jQuery Version 1.11.1 -->
+  <script src="js/jquery.js"></script>
+
+  <!-- Bootstrap Core JavaScript -->
+  <script src="js/bootstrap.min.js"></script>
+
+  <!-- Knockup -->
+  <script src="ku/jquery.1.11.2.debug.js"></script>  
+  <script src="ku/underscore.1.7.0.debug.js"></script>
+  <script src="ku/backbone.1.1.2.debug.js"></script>
+  <script src="ku/knockout.3.2.0.debug.js"></script>
+  <script src="ku/knockout.mapping.2.4.1.debug.js"></script>
+  <script src="ku/knockup.0.0.1.debug.js"></script>
+  <script src="test.js"></script>
+
+</body>
+
+</html>
