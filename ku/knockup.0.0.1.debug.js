@@ -1,301 +1,281 @@
 (function() {
-  window.ku = {};
-  ku.fromBB = function() {
-    var args =_.map(arguments, function(v) {
-      return v;
-    });
-    var t = ko.mapping.fromJS.bind(null, args)();
-    return t;  
+  window.ku = new (function ku() {})();
+  ku._shared = {};
+  ku._shared._kucompile = function(opts) {
+    var self = this;
+    opts || (opts = {});
+    //compile _kubase into _ku and subscribe to all children.
+
+    //skip if updating ko if update came form ko
+    if(!!!opts.fromko)
+      ko.mapping.fromJS(self._kubase, self._komap, self._ku);
+
+    ku.subscribeAll(self._ku, function(nv, obj, path, parr) {
+      var koself = this;
+      var o = _.reduce(parr, function(pv, cv, i) {
+        if(i+2 > parr.length)
+          return pv;
+        if(pv instanceof Backbone.Model)
+            return pv.get(cv);
+        if(pv instanceof Backbone.Collection)
+          return pv.at(cv);
+        if(pv instanceof Array)
+          return pv[cv];
+      }, self);
+
+      var lastkey = _.last(parr);
+      if(o.get(lastkey) instanceof Backbone.Collection)
+        o.get(lastkey).reset(ko.mapping.toJS(nv), {fromko: true});
+      else
+        o.set(lastkey, nv, {fromko: true});
+    }, {overwrite: !!self._kuparent});
+
+
+    if(!!!opts.frombubble || !!!opts.self)
+      self.trigger('kububble', opts);
   };
-  ku.fromBB = ko.mapping.fromJS;
-  ku.subscribeAll = function(koobj, cb, opts) {
-    opts || (opts = {})
+  ku._shared._kuupdate = function(opts) {
+    var self = this;
+    opts || (opts = {});
+    var to = {};
+    if(self instanceof ku.Collection) {
+      to = [];
+    }
+    //todo: check if self is model
+    var type = "Model";
+    if(self instanceof ku.Collection)
+      type = "Collection";
 
-    opts.dispose = opts.dispose || false;
-
-    if(!koobj || !koobj.__ko_mapping__) return;
-    var tko = koobj;
-    if(typeof koobj.__ko_mapping__._ku_mapped == 'undefined')
-      koobj.__ko_mapping__._ku_mapped = {};
-    Object.keys(koobj.__ko_mapping__.mappedProperties)
-      .forEach(function(fullkey) {
-        if(/__ko_mapping__/.test(fullkey))
-          return;
-        if(/__ko_proto__/.test(fullkey))
-          return;
-
-        var ref = tko;
-        var lkey = null;
-        var keys = [];
-        fullkey.match(/(\[[0-9]+\]|([^\[]*))/ig).forEach(function(v2) {
-          if(/.+\..+/.test(v2)) {
-            v2.split('.').forEach(function(v) {
-              keys.push(v);
-            });
-          } else {
-            keys.push(v2.replace(/[\.\[\]]/g, ""));
-          }
-        });
-        var fkeys = keys.filter(function(v) {return typeof v !== 'undefined' && v != ''; });
-        fkeys.filter(function(v) {return typeof v !== 'undefined' && v != ''; })
-          .forEach(function(k, i, arr) {
-            lkey = k;
-            if(i+1 < arr.length) {
-              if(ref[lkey]) {
-                ref = ref[lkey];
-              } else if(typeof ref == 'function' && typeof ref()[lkey] !== 'undefined') {
-                ref = ref()[lkey];
-              } else {
-                //throw "danger will robinson"
-              }
-
-              if(typeof ref == 'function' && Array.isArray(ref()))
-                ref = ref();
-            }
-          });
-        if(ref[lkey] && ref[lkey].subscribe && ref[lkey]._subscriptions) {
-          var skip = false;
-          if(typeof ref[lkey]._subscriptions.change !== 'undefined') {
-            skip = ref[lkey]._subscriptions.change.reduce(function(pv, cv) {
-              return (!!(pv || cv._kuf))
-            }, false);
-            if(skip) return;
-          }
-          //var f = cb.bind(opts.bo || null, fullkey, fkeys)
-          //f._kuf = true;
-          //ref[lkey].subscribe(f);
-          //koobj.__ko_mapping__._ku_mapped[fullkey] = 1;
-          //var s = new ko.subscription(ref[lkey], cb.bind(opts.bo || null, fullkey, fkeys));
-          var s = new ko.subscription(ref[lkey], function(nv) {
-            cb.call(this, fullkey, fkeys, nv);
-          });
-          s._kuf = true;
-          if(typeof ref[lkey]._subscriptions.change === 'undefined')
-            ref[lkey]._subscriptions.change = [];
-          ref[lkey]._subscriptions.change.push(s);
-        }
-      });
-  };
-  ku.Model = Backbone.Model.extend({
-    initialize: function() {
-      var self = this;
-      //Backbone.Model.apply(this, arguments);
-      self._ku_base = {};
-      self._ku = ko.mapping.fromJS(self._ku_base);
-
-      self._kucompile_opts = {};
-      self._kucompile = function(opts) {
-        opts || (opts = {});
-
-        if(typeof self._ku_parent !== 'undefined')
-          return;
-        if(!!!opts.fromko) ko.mapping.fromJS(self._ku_base, self._ku);
-        ku.subscribeAll(self._ku, function(pstring, parray, nv) {
-          if(self._kucompile_opts.fromko) {
-            delete self._kucompile_opts.fromko
-            return;
-          }
-          var o = parray.reduce(function(pv, cv, i) {
-            if(i+2 > parray.length) return pv;
-
-            if(pv instanceof Backbone.Model)
-              return pv.get(cv);
-            if(pv instanceof Backbone.Collection)
-              return pv.at(cv);
-            if(pv instanceof Array)
-              return pv[cv];
-          }, self);
-          try {
-            if(nv instanceof Array) {
-              nv = ko.mapping.toJS(nv);
-            }
-            var k = _.last(parray);
-            if(o.get(k) instanceof Backbone.Collection)
-              ;//console.log(nv)//o.get(k).reset(nv, {fromko: true})
-            else
-              o.set(k, nv, {fromko: true});
-          } catch (e) {
-            throw e;
-          }
-        });
-      };
-      self._getkoview = function() {
-        if(typeof self._ku_parent !== 'undefined')
-          return self._ku_base;
-        return self._ku;
+    _.each(self.attributes || self.models || [], function(v, k) {
+      if((v instanceof Backbone.Model || 
+               v instanceof Backbone.Collection) && 
+         typeof v._kuparent === 'undefined') {
+        v._kuparent = self;
+        v.trigger('kuupdate', {self: true});
       }
-      self._kuupdate = function(model, opts) {
+      if(type === "Model")
+        to[k] = ku._extract(v);
+      if(type === "Collection")
+        to[k] = v.toJSON();
+    });
+
+    self._kubase = to;
+    self.trigger('kucompile');
+  };
+  ku._shared._kububble = function(o, opts) {
+    opts || (opts = {});
+    var self = this;
+    if(arguments.length == 1) {
+      if(!(o instanceof Backbone.Model || o instanceof Backbone.Collection)) {
+        opts = o;
+        o = self;
+      }
+      opts.frombubble = self;
+    } else if(!(o instanceof Backbone.Model || o instanceof Backbone.Collection)) {
+      throw "ku.bubble needs to be a backbone.model or collection"
+    }
+    opts || (opts = {});
+    opts.frombubble = true;
+
+    if(typeof opts.trail == 'undefined')
+      opts.trail = [];
+    opts.trail.push(self);
+
+    //console.log(o, opts)
+
+    if(arguments.length == 2)
+      self.trigger('kuupdate', opts);
+    if(self._kuparent)
+      self._kuparent.trigger('kububble', o, opts);
+  };
+
+
+  ku.Model = Backbone.Model.extend({
+    constructor: function(attr, opts) {
+      attr || (attr = {});
+      opts || (opts = {});
+      Backbone.Model.call(this, attr, opts);
+
+      var self = this;
+
+      //if we're initialized from a collection or it was just assigned a parent
+      if(opts.collection)
+        self._kuparent = opts.collection;
+      if(opts.kuparent)
+        self._kuparent = otps.kuparent;
+
+      //ko.mapping.fromJS mapping variable.
+      self._komap = opts.komap || {};
+
+      
+      self._event_change = function(model, opts) {
         opts || (opts = {});
-        var to = {};
-        _.each(self.attributes, function(v, k) {
-          if(v instanceof Backbone.Model || v instanceof Backbone.Collection)
-            v._ku_parent = self;
-          if(v instanceof ku.Model) {
-            to[k] = v._ku_base;
-            return;
-          }
-          if(v instanceof ku.Collection) {
-            to[k] = v._ku_base;
-            return;
-          }
-          if(v instanceof Backbone.Model) {
-            to[k] = v.attributes;
-            return;
-          }
-          if(v instanceof Backbone.Collection) {
-            to[k] = v.models;
-            return;
-          }
-          if(typeof v.__ko_mapping__ !== 'undefined' || typeof v.__ko_proto__ !== 'undefined')
-            to[k] = ko.mapping.toJS(v);
-          else
-            to[k] = v;
+
+        //assign _kuparent
+        _.each(self.attributes, function(v) {
+          v._kuparent == self;
         });
-
-        self._ku_base = to;
-        self._kucompile(opts);
-        if(self._ku_parent)
-          self._ku_parent.trigger('ku_change', self, [self]);
+        self.trigger('kuupdate', opts);
       };
+      self.on('change', self._event_change);
 
-      self._kuupdate();
-      this.on('change', self._kuupdate);
+      self.on('kuupdate', ku._shared._kuupdate.bind(self));
+      self.on('kucompile', ku._shared._kucompile.bind(self));
+      self.on('kububble', ku._shared._kububble.bind(self));
+    }
+    ,initialize: function() {
+      var self = this;
 
-      self.event_ku_change = function(o, trail, options) {
-        self._kuupdate(options);
-        /*console.log("self"
-          , (self.cid || self.map(function(v) { return v.cid; }).join('|'))
-          , "o"
-          , (o.cid || o.map(function(v) { return v.cid; }).join('|'))
-          , trail
-        );*/
-        if(!Array.isArray(trail))
-          trail = [];  
-        
-        trail.push(self)
-        if(self._ku_parent)
-          self._ku_parent.trigger('ku_change', self, trail, options);
-      };
-      this.on('ku_change', self.event_ku_change);
-      this.on('change', function(uo, opts) {
-        /*//if(opts.fromko) return;
-        var to = {};
-        _.each(uo.attributes, function(v, k) {
-          if(typeof v._getkoview !== 'undefined') {
-            to[k] = ko.mapping.toJS(v._getkoview());
-          } else {
-            to[k] = v;
-          }
-        });
-        ku.fromBB(to, self._ku);
-
-        _.keys(self._ku.__ko_mapping__.mappedProperties)
-          .forEach(function(k) {
-            if(typeof self._ku[k] === 'undefined')
-              return;
-            if(typeof self._ku[k]._ku != 'undefined') {
-              return;
-            }
-            if(typeof self._ku[k].subscribe !== 'function')
-              return;
-            self._ku[k].subscribe(function(nv) {
-              if(opts.fromko) return;
-              self.set(k, nv, {fromko: true});
-            });
-          });*/
-      });
+      self._kubase = ko.observable({});
+      self._ku = ko.mapping.fromJS(self._kubase);
+      self.trigger('kuupdate');
     }
   });
 
   ku.Collection = Backbone.Collection.extend({
     model: ku.Model
-    ,initialize: function() {
+    ,constructor: function(models, opts) {
       var self = this;
-      self._ku = ko.mapping.fromJS([]);
-      self._ku_base = [];
-      self._kucompile = function(opts) {
-        opts || (opts = {})
-        if(!!!opts.fromko && !!!self._ku_parent)
-          ko.mapping.fromJS(self._ku_base, self._ku);
-        else if(!!self._ku_parent)
-          self._ku_parent.trigger('ku_change', self);
-        ku.subscribeAll(self._ku, function(pstring, parray, nv) {
-          if(self._kucompile_opts.fromko) {
-            delete self._kucompile_opts.fromko
-            return;
-          }
-          var o = parray.reduce(function(pv, cv, i) {
-            if(i+2 > parray.length) return pv;
+      models || (models = {});
+      opts || (opts = {});
+      Backbone.Collection.call(self, models, opts);
 
-            if(pv instanceof Backbone.Model)
-              return pv.get(cv);
-            if(pv instanceof Backbone.Collection)
-              return pv.at(cv);
-            if(pv instanceof Array)
-              return pv[cv];
-          }, self);
-          try {
-            if(nv instanceof Array) {
-              nv = ko.mapping.toJS(nv);
-            }
-            var k = _.last(parray);
-            if(o.get(k) instanceof Backbone.Collection)
-              o.get(k).reset(nv, {fromko: true});//console.log(nv)//o.get(k).reset(nv, {fromko: true})
-            else
-              o.set(k, nv, {fromko: true});
-          } catch (e) {
-            throw e;
-          }
-        });
-      };
-      self._kuupdate = function(opts) {
-        self._ku_base = self.map(function(v) {
-          return v.toJSON();
-        });
-        self._kucompile(opts);
-      };
-      self._getkoview = function() {
-        if(self._ku_parent)
-          return self._ku_base;
-        return self._ku;
-      };
+      if(opts.kuparent)
+        self._kuparent = otps.kuparent;
 
-      self.event_add = function(model, collection, options) {
-        model._ku_parent = self;
-        self._kuupdate(options);
+      //ko.mapping.fromJS mapping variable.
+      this._komap = opts.komap || {};
+      self._event_addremove = function(model, coll, opts) {
+        self.trigger('kuupdate', opts);
       };
-      self.event_remove = function(model, collection, options) {};
-      self.event_reset = function(collection, options) {
-        collection.forEach(function(v) {
-          v._ku_parent = self;
-        });
-        self._kuupdate(options);
-      };
-      self.event_ku_change = function(o, trail, options) {
-        self._kuupdate(options);
-        /*console.log("self"
-          , (self.cid || self.map(function(v) { return v.cid; }).join('|'))
-          , "o"
-          , (o.cid || o.map(function(v) { return v.cid; }).join('|'))
-          , trail
-        );*/
-        if(!Array.isArray(trail))
-          trail = [];
-        
-        trail.push(self)
-        if(self._ku_parent)
-          self._ku_parent.trigger('ku_change', self, trail, options);
-      };
+      self._event_reset = function (coll, opts) {
+        if(opts.fromko) return;
+        self.trigger('kuupdate', opts);
+      }
+      self.on('add', self._event_addremove)
+      self.on('remove', self._event_addremove)
+      self.on('reset', self._event_reset)
 
-      self.on('add', self.event_add);
-      self.on('remove', self.event_remove);
-      self.on('reset', self.event_reset);
-      self.on('ku_change', self.event_ku_change);
+      self.on('kuupdate', ku._shared._kuupdate.bind(self));
+      self.on('kucompile', ku._shared._kucompile.bind(self));
+      self.on('kububble', ku._shared._kububble.bind(self));
     }
-  });
-  ku.View = Backbone.View.extend();
+    ,initialize: function(models, opts) {
+      
+
+      var self = this;
+      self._kubase = ko.observableArray([]);
+      self._ku = ko.mapping.fromJS(self._kubase);
+      self.trigger('kuupdate');
+    }
+  })
+
+
+  //
+  //  ku utilities
+  //
+
+  //wrapper for ko.applyBindings.
+  //or you could do ko.applyBindings(ku.Model._ku);
   ku.applyBindings = function(view, element) {
-    var koview = view._getkoview();
+    var koview = view._ku;
     ko.applyBindings(koview, element);
   };
-})();
+  ku._extractRaw = function(v) {
+    if(v instanceof ku.Model) {
+      return v.attributes;
+    }
+    if(v instanceof ku.Collection) {
+      return v._ku;
+    }
+  }
+  ku._extract = function(v) {
+    if(typeof v === 'undefined')
+      return;
+
+    if(v instanceof ku.Model) {
+      return v._ku;
+    }
+    if(v instanceof ku.Collection) {
+      return v._ku;
+    }
+    if(v instanceof Backbone.Model) {
+      return ku._extract(v.attributes);
+    }
+    if(v instanceof Backbone.Collection) {
+      return _.map(v.models, ku._extract);
+    }
+    if(typeof v.__ko_proto__ !== 'undefined')
+      return ko.mapping.fromJS(v)
+    else
+      return v;
+  };
+
+  //apply ko subscription to all children of mapped object
+  ku.subscribeAll = function(koobj, cb, opts) {
+    opts || (opts = {})
+    opts.dispose = opts.dispose || false;
+    var keys = _.filter(_.keys(koobj.__ko_mapping__.mappedProperties), function(v) {
+      return !/__ko_mapping__/.test(v);
+    });
+
+    _.each(keys, function(fullkey) {
+      var ref = koobj;
+      var lkey = null;
+      var patharray = [];
+      fullkey.match(/(\[[0-9]+\]|([^\[]*))/ig).forEach(function(v2) {
+        if(/.+\..+/.test(v2)) {
+          v2.split('.').forEach(function(v) {
+            if(v) patharray.push(v);
+          });
+        } else {
+          var t = v2.replace(/[\.\[\]]/g, "");
+          if(t) patharray.push(t);
+        }
+      });
+
+      var o = _.reduce(patharray, function(pv, cv, i) {
+        if(i+2 > patharray.length)
+          return (typeof pv === 'function') ? pv() : pv;
+
+        if(typeof pv === 'function')
+          return pv()[cv];
+        else if(typeof pv[cv] !== 'undefined')
+          return pv[cv];
+        else
+          throw "something went wrong. Send code and data samples to knockup on github.";
+      }, koobj);
+
+      var lastkey = _.last(patharray);
+      
+      //doesn't exist for some reason...skip
+      if(typeof o === 'undefined' || typeof o[lastkey] === 'undefined')
+        return;
+
+      if(typeof o[lastkey] === 'function' && typeof o[lastkey].__ko_proto__ !== 'undefined') {
+        var alreadysetup = false;
+        if(opts.overwrite && typeof o[lastkey]._subscriptions.change !== 'undefined') {
+          o[lastkey]._subscriptions.change = _.filter(o[lastkey]._subscriptions.change, function(v, i) {
+            return !!!v._kusubscription;
+          })
+        } else if(typeof o[lastkey]._subscriptions.change !== 'undefined') {
+          alreadysetup = _.reduce(o[lastkey]._subscriptions.change, function(pv, cv) {
+            return pv || cv._kusubscription || false;
+          }, alreadysetup);
+
+          //already have a subscription setup.
+          if(alreadysetup)
+            return;
+        } else {
+          o[lastkey]._subscriptions.change = [];
+        }
+
+        var s = new ko.subscription(o[lastkey], function(nv) {
+          cb.call((opts.bindto || this), nv, this, fullkey, patharray);
+        }, opts.dispose);
+        s._kusubscription = true;
+        o[lastkey]._subscriptions.change.push(s);
+      }
+    });// end each(keys)
+  };
+})()

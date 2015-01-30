@@ -37,14 +37,14 @@
 
     <div class="row">
       <div class="col-lg-6 text-center">
+        <div id="tool1">
+        </div>
         <div id="test1">
           <div><input data-bind="textInput: test1" /> </div>
-          <div data-bind="text: test1">Should disappear </div>
-          <div><input data-bind="textInput: inception.innard" /> </div>
-          <div data-bind="text: inception.innard">Should disappear </div>
+          <div><input data-bind="textInput: inception().innard" /> </div>
         </div>
       </div>
-      <div class="col-lg-6 text-center">
+      <div class="col-lg-6 text-left">
         <div id="test1-bb">
           <pre></pre>
         </div>
@@ -54,13 +54,17 @@
 
     <div class="row">
       <div class="col-lg-6 text-center">
+        <div id="tool2">
+            <button data-bind="click: addbb">Add an item with Backbone</button>
+            <button data-bind="click: addko">Add an item with Knockout</button>
+        </div>
         <div id="test2">
           <div data-bind="foreach: {data: c, as: 'colli'} ">
-            <input data-bind="value: colli.h">
+            <input data-bind="value: colli.name">
           </div>
         </div>
       </div>
-      <div class="col-lg-6 text-center">
+      <div class="col-lg-6 text-left">
         <div id="test2-bb">
           <pre></pre>
         </div>
