@@ -55,9 +55,8 @@
     <div class="row">
       <div class="col-lg-6 text-center">
         <div id="test2">
-          <div data-bind="foreach: {data: coll, as: 'colli'} ">
-            <input data-bind="textInput: colli.h">
-
+          <div data-bind="foreach: {data: c, as: 'colli'} ">
+            <input data-bind="value: colli.h">
           </div>
         </div>
       </div>
