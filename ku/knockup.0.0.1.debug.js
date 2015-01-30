@@ -111,7 +111,7 @@
             }
             var k = _.last(parray);
             if(o.get(k) instanceof Backbone.Collection)
-              console.log(nv)//o.get(k).reset(nv, {fromko: true})
+              ;//console.log(nv)//o.get(k).reset(nv, {fromko: true})
             else
               o.set(k, nv, {fromko: true});
           } catch (e) {
@@ -163,12 +163,12 @@
 
       self.event_ku_change = function(o, trail, options) {
         self._kuupdate(options);
-        console.log("self"
+        /*console.log("self"
           , (self.cid || self.map(function(v) { return v.cid; }).join('|'))
           , "o"
           , (o.cid || o.map(function(v) { return v.cid; }).join('|'))
           , trail
-        );
+        );*/
         if(!Array.isArray(trail))
           trail = [];  
         
@@ -240,7 +240,7 @@
             }
             var k = _.last(parray);
             if(o.get(k) instanceof Backbone.Collection)
-              console.log(nv)//o.get(k).reset(nv, {fromko: true})
+              o.get(k).reset(nv, {fromko: true});//console.log(nv)//o.get(k).reset(nv, {fromko: true})
             else
               o.set(k, nv, {fromko: true});
           } catch (e) {
@@ -273,12 +273,12 @@
       };
       self.event_ku_change = function(o, trail, options) {
         self._kuupdate(options);
-        console.log("self"
+        /*console.log("self"
           , (self.cid || self.map(function(v) { return v.cid; }).join('|'))
           , "o"
           , (o.cid || o.map(function(v) { return v.cid; }).join('|'))
           , trail
-        );
+        );*/
         if(!Array.isArray(trail))
           trail = [];
         

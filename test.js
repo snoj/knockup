@@ -5,7 +5,7 @@
   model.set('inception', new ku.Model({innard: new Date()}))
   ku.applyBindings(model, $('#test1')[0]);
   setInterval(function() {
-    model._ku.a("update from KO! " + (new Date()));
+    //model._ku.a("update from KO! " + (new Date()));
   }, 1900)
   model.on('all', function() {
     $('#test1-bb pre').text(JSON.stringify(model))
