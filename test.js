@@ -44,4 +44,19 @@
     }
   }
   ko.applyBindings(tool2, $('#test2 .tools')[0]);
+
+
+  //test 3
+  userModel = ku.Model.extend({
+    urlRoot: "/tdata/"
+  });
+  m3 = new ku.Model();
+  m3.on('all', function() {
+    $('#test3 pre').text(JSON.stringify(m3, null, " "))
+  });
+  var _user = new userModel({id: "820awnlnawlrgawrg"});
+  m3.set('user', _user);
+  _user.fetch().always(function() {
+  }); //.always(function() {_user.trigger('kuupdate'); });
+  ku.applyBindings(m3, $('#test3 .content')[0]);
 })();

@@ -92,6 +92,8 @@
       self.trigger('kuupdate', opts);
     if(self._kuparent)
       self._kuparent.trigger('kububble', o, opts);
+    else
+      self._ku.valueHasMutated();
   };
 
 
@@ -191,8 +193,8 @@
   //wrapper for ko.applyBindings.
   //or you could do ko.applyBindings(ku.Model._ku);
   ku.applyBindings = function(view, element) {
-    var koview = view._ku;
-    ko.applyBindings(koview, element);
+    //var koview = view._ku;
+    ko.applyBindings(view._ku, element);
   };
   ku._extractRaw = function(v) {
     if(v instanceof ku.Model) {

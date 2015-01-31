@@ -37,7 +37,7 @@
 
     <div class="row">
       <div class="col-lg-12" onclick="$('.tests').hide(); $('#test1').show()">
-        <span class="h2">Test #1</span>
+        <span class="h2">Test #1: Static models</span>
       </div>
     </div>
     <div id="test1" class="row tests">
@@ -59,7 +59,7 @@
 
     <div class="row">
       <div class="col-lg-12" onclick="$('.tests').hide(); $('#test2').show()">
-        <span class="h2">Test #2</span>
+        <span class="h2">Test #2: Collections</span>
       </div>
     </div>
     <div id="test2" class="row tests" style="display: none;">
@@ -93,7 +93,7 @@
 
     <div class="row">
       <div class="col-lg-12" onclick="$('.tests').hide(); $('#test3').show()">
-        <span class="h2">Test #3</span>
+        <span class="h2">Test #3: Synced data</span>
       </div>
     </div>
     <div id="test3" class="row tests" style="display: none;">
@@ -102,8 +102,11 @@
           
         </div>
         <div class="content">
-          <div data-bind="foreach: {data: c, as: 'colli'} ">
-            <input data-bind="value: colli.name">
+          <div>
+            <span>ID: </span><span data-bind="text:user().id"></span>
+          </div>
+          <div>
+            <span>Username: </span><span data-bind="text: user().username"></span>
           </div>
         </div>
       </div>
