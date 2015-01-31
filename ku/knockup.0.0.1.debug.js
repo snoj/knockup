@@ -1,6 +1,11 @@
 (function() {
   window.ku = new (function ku() {})();
   ku._shared = {};
+  ku._shared.komapkey = function(idAttribute, d) {
+    if(d[idAttribute])
+      return ko.utils.unwrapObservable(d[idAttribute]);
+    return;
+  };
   ku._shared._kucompile = function(opts) {
     var self = this;
     opts || (opts = {});
@@ -25,7 +30,7 @@
 
       var lastkey = _.last(parr);
       if(o.get(lastkey) instanceof Backbone.Collection)
-        o.get(lastkey).reset(ko.mapping.toJS(nv), {fromko: true});
+        o.get(lastkey).set(ko.mapping.toJS(nv), {merge: true, fromko: true});
       else
         o.set(lastkey, nv, {fromko: true});
     }, {overwrite: !!self._kuparent});
@@ -106,7 +111,7 @@
 
       //ko.mapping.fromJS mapping variable.
       self._komap = opts.komap || {};
-
+      self._komap.key || (self._komap.key = ku._shared.komapkey.bind(null, self.idAttribute));
       
       self._event_change = function(model, opts) {
         opts || (opts = {});
@@ -126,6 +131,9 @@
     ,initialize: function() {
       var self = this;
 
+      if(typeof self.get(self.idAttribute) === 'undefined')
+        self.set(self.idAttribute, self.cid);
+
       self._kubase = ko.observable({});
       self._ku = ko.mapping.fromJS(self._kubase);
       self.trigger('kuupdate');
@@ -143,8 +151,13 @@
       if(opts.kuparent)
         self._kuparent = otps.kuparent;
 
+      this.cid = _.unique('c');
+      //this.set(this.idAttribute, this.cid);
+      
       //ko.mapping.fromJS mapping variable.
       this._komap = opts.komap || {};
+      self._komap.key || (self._komap.key = ku._shared.komapkey.bind(null, self.idAttribute));
+      
       self._event_addremove = function(model, coll, opts) {
         self.trigger('kuupdate', opts);
       };
@@ -161,9 +174,9 @@
       self.on('kububble', ku._shared._kububble.bind(self));
     }
     ,initialize: function(models, opts) {
-      
-
       var self = this;
+      if(typeof self.get(self.idAttribute) === 'undefined')
+        self.set(self.idAttribute, self.cid);
       self._kubase = ko.observableArray([]);
       self._ku = ko.mapping.fromJS(self._kubase);
       self.trigger('kuupdate');
