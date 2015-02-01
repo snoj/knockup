@@ -34,7 +34,7 @@
       var lastkey = _.last(parr);
       if (o.get(lastkey) instanceof Backbone.Collection)
         o.get(lastkey).set(ko.mapping.toJS(nv), {merge: true, fromko: true});
-      else
+      else if (o.get(lastkey))
         o.set(lastkey, nv, {fromko: true});
     }, {overwrite: !!self._kuparent});
 
@@ -197,6 +197,7 @@
   //or you could do ko.applyBindings(ku.Model._ku);
   ku.applyBindings = function (view, element) {
     //var koview = view._ku;
+    view.trigger('kuupdate')
     ko.applyBindings(view._ku, element);
   };
   ku._extractRaw = function (v) {
