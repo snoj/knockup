@@ -53,8 +53,9 @@
     var type = "Model";
     if (self instanceof ku.Collection)
       type = "Collection";
-
-    _.each(self.attributes || self.models || [], function (v, k) {
+    //var changedAttr = (self instanceof Backbone.Model && self.hasChanged()) ? self.changed : self.attributes;
+    var changedAttr = self.attributes;
+    _.each(opts.values || changedAttr || self.models || [], function (v, k) {
       if ((v instanceof Backbone.Model || 
                v instanceof Backbone.Collection) && 
          typeof v._kuparent === 'undefined') {
@@ -133,7 +134,7 @@
       self.on('kucompile', ku._shared._kucompile.bind(self));
       self.on('kububble', ku._shared._kububble.bind(self));
     }
-    ,initialize: function () {
+    ,initialize: function (attrs, opts) {
       var self = this;
 
       if (typeof self.get(self.idAttribute) === 'undefined')
@@ -141,7 +142,7 @@
 
       self._kubase = ko.observable({});
       self._ku = ko.mapping.fromJS(self._kubase);
-      self.trigger('kuupdate');
+      self.trigger('kuupdate', {values: attrs});
     }
   });
 
@@ -157,7 +158,6 @@
         self._kuparent = otps.kuparent;
 
       this.cid = _.unique('c');
-      //this.set(this.idAttribute, this.cid);
       
       //ko.mapping.fromJS mapping variable.
       this._komap = opts.komap || {};
@@ -184,7 +184,7 @@
         self.set(self.idAttribute, self.cid);
       self._kubase = ko.observableArray([]);
       self._ku = ko.mapping.fromJS(self._kubase);
-      self.trigger('kuupdate');
+      self.trigger('kuupdate', {values: self.models});
     }
   })
 
