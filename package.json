@@ -1,8 +1,8 @@
 {
   "name": "knockup",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "Backbone and Knockout together, forever.",
-  "main": "\"\"",
+  "main": "",
   "scripts": {
     "build": "uglifyjs knockup-dev.js --mangle --source-map knockup-min.map -o knockup-min.js"
   },
