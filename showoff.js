@@ -36,11 +36,11 @@
     }
     ,rembb: function() {
       var d = new Date();
-      m2.get('c').pop(); //({id: d.getTime(), name: d.toString()});
+      m2.get('c').pop();
     }
     ,remko: function() {
       var d = new Date();
-      m2._ku().c.pop(); //({id: d.getTime(), name: d.toString()})
+      m2._ku().c.pop();
     }
   }
   ko.applyBindings(tool2, $('#test2 .tools')[0]);
@@ -57,6 +57,6 @@
   var _user = new userModel({id: "820awnlnawlrgawrg"});
   m3.set('user', _user);
   _user.fetch().always(function() {
-  }); //.always(function() {_user.trigger('kuupdate'); });
+  });
   ku.applyBindings(m3, $('#test3 .content')[0]);
 })();

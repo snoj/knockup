@@ -15,7 +15,7 @@
     //compile _kubase into _ku and subscribe to all children.
 
     //skip if updating ko if update came form ko
-    if (!!!opts.fromko)
+    if (!!!opts.fromko || !!opts.skipmap)
       ko.mapping.fromJS(self._kubase, self._komap, self._ku);
 
     ku.subscribeAll(self._ku, function (nv, obj, path, parr) {
@@ -32,10 +32,20 @@
       }, self);
 
       var lastkey = _.last(parr);
+
+      var ov = o.get(lastkey);
+
+      if(ov.toJSON)
+        ov = ov.toJSON();
+
+      if(_.isEqual(ko.mapping.toJS(nv), ov))
+        return;
+
       if (o.get(lastkey) instanceof Backbone.Collection)
         o.get(lastkey).set(ko.mapping.toJS(nv), {merge: true, fromko: true});
       else if (o.get(lastkey))
         o.set(lastkey, nv, {fromko: true});
+
     }, {overwrite: !!self._kuparent});
 
 
@@ -45,6 +55,7 @@
   ku._shared._kuupdate = function (opts) {
     var self = this;
     opts || (opts = {});
+
     var to = {};
     if (self instanceof ku.Collection) {
       to = [];
@@ -55,10 +66,19 @@
       type = "Collection";
     //var changedAttr = (self instanceof Backbone.Model && self.hasChanged()) ? self.changed : self.attributes;
     var changedAttr = self.attributes;
+    var changedModel = self.models;
+
+    if(self instanceof ku.Model) {
+      changedModel = (self.hasChanged()) ? self.changed : self.attributes;
+    }
+    if(self instanceof ku.Collection) {
+      changedModel = (self.hasChangedModels()) ? self.changedModels : self.models;
+    }
+
     _.each(opts.values || changedAttr || self.models || [], function (v, k) {
-      if ((v instanceof Backbone.Model || 
-               v instanceof Backbone.Collection) && 
-         typeof v._kuparent === 'undefined') {
+      if ((v instanceof Backbone.Model ||
+            v instanceof Backbone.Collection) &&
+          typeof v._kuparent === 'undefined') {
         v._kuparent = self;
         v.trigger('kuupdate', {self: true});
       }
@@ -118,7 +138,7 @@
       //ko.mapping.fromJS mapping variable.
       self._komap = opts.komap || {};
       self._komap.key || (self._komap.key = ku._shared.komapkey.bind(null, self.idAttribute));
-      
+
       self._event_change = function (model, opts) {
         opts || (opts = {});
 
@@ -142,7 +162,9 @@
 
       self._kubase = ko.observable({});
       self._ku = ko.mapping.fromJS(self._kubase);
-      self.trigger('kuupdate', {values: attrs});
+
+      //self.trigger('kuupdate');
+      ku._shared._kuupdate.call(self, {values: attrs})
     }
   });
 
@@ -158,25 +180,46 @@
         self._kuparent = otps.kuparent;
 
       this.cid = _.unique('c');
-      
+
       //ko.mapping.fromJS mapping variable.
       this._komap = opts.komap || {};
       self._komap.key || (self._komap.key = ku._shared.komapkey.bind(null, self.idAttribute));
-      
-      self._event_addremove = function (model, coll, opts) {
+
+      self.changedModels = [];
+
+      var changedModels = function(opts) {
+        var iself = this;
+        self.changedModels = _.filter(self.models, function(v) {
+          return v.hasChanged();
+        });
+      }
+      self.hasChangedModels = function() {
+        return self.changedModels.length > 0;
+      }
+
+      self._event_add = function (model, coll, opts) {
+        changedModels(opts);
+        self.trigger('kuupdate', opts);
+      };
+      self._event_remove = function (model, coll, opts) {
+        changedModels(opts);
         self.trigger('kuupdate', opts);
       };
       self._event_reset = function (coll, opts) {
         if (opts.fromko) return;
+        changedModels(opts);
         self.trigger('kuupdate', opts);
       }
-      self.on('add', self._event_addremove)
-      self.on('remove', self._event_addremove)
+      self.on('add', self._event_add)
+      self.on('remove', self._event_remove)
       self.on('reset', self._event_reset)
 
       self.on('kuupdate', ku._shared._kuupdate.bind(self));
       self.on('kucompile', ku._shared._kucompile.bind(self));
       self.on('kububble', ku._shared._kububble.bind(self));
+      self.on('kububble', function(o, opts) {
+        changedModels(opts);
+      })
     }
     ,initialize: function (models, opts) {
       var self = this;
@@ -238,6 +281,8 @@
       return !/__ko_mapping__/.test(v);
     });
 
+    opts.id = opts.id || "kusubscription";
+
     _.each(keys, function (fullkey) {
       var ref = koobj;
       var lkey = null;
@@ -266,35 +311,115 @@
       }, koobj);
 
       var lastkey = _.last(patharray);
-      
+
       //doesn't exist for some reason...skip
       if (typeof o === 'undefined' || typeof o[lastkey] === 'undefined')
         return;
 
       if (typeof o[lastkey] === 'function' && typeof o[lastkey].__ko_proto__ !== 'undefined') {
         var alreadysetup = false;
-        if (opts.overwrite && typeof o[lastkey]._subscriptions.change !== 'undefined') {
-          o[lastkey]._subscriptions.change = _.filter(o[lastkey]._subscriptions.change, function (v, i) {
-            return !!!v._kusubscription;
-          })
+        if(opts.overwrite && typeof o[lastkey]._subscriptions.change) {
+          o[lastkey]._subscriptions.change = _.filter(o[lastkey]._subscriptions.change, function(v, i) {
+            return !!!v[opts.id];
+          });
         } else if (typeof o[lastkey]._subscriptions.change !== 'undefined') {
           alreadysetup = _.reduce(o[lastkey]._subscriptions.change, function (pv, cv) {
-            return pv || cv._kusubscription || false;
+            return pv || cv[opts.id] || false;
           }, alreadysetup);
 
           //already have a subscription setup.
-          if (alreadysetup)
+          if (alreadysetup && !!!opts.notku)
             return;
         } else {
           o[lastkey]._subscriptions.change = [];
         }
 
+        var dispose;
         var s = new ko.subscription(o[lastkey], function (nv) {
           cb.call((opts.bindto || this), nv, this, fullkey, patharray);
-        }, opts.dispose);
-        s._kusubscription = true;
+        });
+        if(!!!opts.notku)
+          s[opts.id] = true;
         o[lastkey]._subscriptions.change.push(s);
       }
     });// end each(keys)
+  };
+
+
+  ku.getKOKeys = function(koobj, opts) {
+    opts || (opts = {});
+
+    opts.map = (typeof opts.map === 'undefined') ? true : opts.map;
+
+    var keys = _.filter(_.keys(koobj.__ko_mapping__.mappedProperties), function (v) {
+      return !/__ko_mapping__/.test(v);
+    });
+
+    return _.map(keys, function(fullkey) {
+      var patharray = [];
+      fullkey.match(/(\[[0-9]+\]|([^\[]*))/ig).forEach(function (v2) {
+        if (/.+\..+/.test(v2)) {
+          v2.split('.').forEach(function (v) {
+            if (v) patharray.push(v);
+          });
+        } else {
+          var t = v2.replace(/[\.\[\]]/g, "");
+          if (t) patharray.push(t);
+        }
+      });
+      var rtn = { fullpath: fullkey, patharray: patharray };
+
+
+      var o = _.reduce(patharray, function (pv, cv, i) {
+        if (i+2 > patharray.length)
+          return (typeof pv === 'function') ? pv() : pv;
+
+        if (typeof pv === 'function')
+          return pv()[cv];
+        else if (typeof pv[cv] !== 'undefined')
+          return pv[cv];
+        else
+          throw "something went wrong. Send code and data samples to knockup on github.";
+      }, koobj);
+
+      if (typeof o === 'undefined') {
+        return;
+      } else if (typeof o !== 'undefined' && opts.map) {
+        rtn.ko = o;
+        rtn.value = o[_.last(patharray)];
+      }
+      return rtn;
+    }).filter(function(v) {
+      return typeof v !== 'undefined';
+    });
+  };
+
+  ku.mapBB = function(koobj, bbobj) {
+    var keys = ku.getKOKeys(koobj);
+    _.forEach(keys, function(v) {
+      var o = _.reduce(v.patharray, function (pv, cv, i) {
+        if (i+2 > v.patharray.length)
+          return pv;
+        if (pv instanceof Backbone.Model)
+            return pv.get(cv);
+        if (pv instanceof Backbone.Collection)
+          return pv.at(cv);
+        if (pv instanceof Array)
+          return pv[cv];
+      }, bbobj);
+
+      if (typeof o !== 'undefined') {
+        v.bb = o;
+      }
+    });
+
+    return keys;
+  };
+
+  //
+  // overwride KO stuff with awesome _ features.
+  //
+  ko.observable['fn'].isDifferent = function (oldValue, newValue) {
+    return !_.isEqual(oldValue, newValue);
   };
 })();

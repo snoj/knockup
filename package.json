@@ -1,0 +1,30 @@
+{
+  "name": "knockup",
+  "version": "0.0.1",
+  "description": "Backbone and Knockout together, forever.",
+  "main": "\"\"",
+  "scripts": {
+    "build": "uglifyjs knockup-dev.js --mangle --source-map knockup-min.map -o knockup-min.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/snoj/knockup.git"
+  },
+  "keywords": [
+    "knockup",
+    "backbone",
+    "MVC",
+    "MV*"
+  ],
+  "author": "Joshua Erickson <josh@snoj.us>",
+  "maintainers": [{
+        "name": "Joshua Erickson",
+        "email": "josh@snoj.us",
+        "web": "http://snoj.us/"
+    }],
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/snoj/knockup/issues"
+  },
+  "homepage": "https://github.com/snoj/knockup"
+}
