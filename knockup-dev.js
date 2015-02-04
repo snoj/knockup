@@ -43,7 +43,7 @@
 
       if (o.get(lastkey) instanceof Backbone.Collection)
         o.get(lastkey).set(ko.mapping.toJS(nv), {merge: true, fromko: true});
-      else if (o.get(lastkey))
+      else if (typeof o.get(lastkey) !== 'undefined')
         o.set(lastkey, nv, {fromko: true});
 
     }, {overwrite: !!self._kuparent});
@@ -318,7 +318,7 @@
 
       if (typeof o[lastkey] === 'function' && typeof o[lastkey].__ko_proto__ !== 'undefined') {
         var alreadysetup = false;
-        if(opts.overwrite && typeof o[lastkey]._subscriptions.change) {
+        if(opts.overwrite && typeof o[lastkey]._subscriptions.change !== 'undefined') {
           o[lastkey]._subscriptions.change = _.filter(o[lastkey]._subscriptions.change, function(v, i) {
             return !!!v[opts.id];
           });
