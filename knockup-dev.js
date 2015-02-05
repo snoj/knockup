@@ -20,20 +20,29 @@
 
     ku.subscribeAll(self._ku, function (nv, obj, path, parr) {
       var koself = this;
+      var lastbb = self;
+      var lastobj = null;
       var o = _.reduce(parr, function (pv, cv, i) {
         if (i+2 > parr.length)
           return pv;
+        if(pv._kuparent)
+          lastbb = pv;
+
         if (pv instanceof Backbone.Model)
-            return pv.get(cv);
-        if (pv instanceof Backbone.Collection)
+          return pv.get(cv);
+        else if (pv instanceof Backbone.Collection)
           return pv.at(cv);
-        if (pv instanceof Array)
+        else if (pv instanceof Array)
           return pv[cv];
       }, self);
 
       var lastkey = _.last(parr);
 
-      var ov = o.get(lastkey);
+      var ov = (function() {
+        try { return o.get(lastkey); } catch(ex) {}
+        try { return o[lastkey]; } catch(ex) {}
+        throw "ov is nothing";
+      })();
 
       if(ov.toJSON)
         ov = ov.toJSON();
@@ -41,7 +50,10 @@
       if(_.isEqual(ko.mapping.toJS(nv), ov))
         return;
 
-      if (o.get(lastkey) instanceof Backbone.Collection)
+      if (!(o instanceof Backbone.Model || o instanceof Backbone.Collection) && typeof o !== 'undefined' && typeof o[lastkey] !== 'undefined') {
+        o[lastkey] = nv;
+        //todo trigger update
+      } else if (o.get(lastkey) instanceof Backbone.Collection)
         o.get(lastkey).set(ko.mapping.toJS(nv), {merge: true, fromko: true});
       else if (typeof o.get(lastkey) !== 'undefined')
         o.set(lastkey, nv, {fromko: true});
@@ -68,28 +80,30 @@
     var changedAttr = self.attributes;
     var changedModel = self.models;
 
-    if(self instanceof ku.Model) {
+    /*if(self instanceof ku.Model) {
       changedModel = (self.hasChanged()) ? self.changed : self.attributes;
     }
     if(self instanceof ku.Collection) {
       changedModel = (self.hasChangedModels()) ? self.changedModels : self.models;
-    }
+    }*/
 
     _.each(opts.values || changedAttr || self.models || [], function (v, k) {
       if ((v instanceof Backbone.Model ||
             v instanceof Backbone.Collection) &&
           typeof v._kuparent === 'undefined') {
         v._kuparent = self;
-        v.trigger('kuupdate', {self: true});
+        //v.trigger('kuupdate', {self: true});
+        ku._shared._kuupdate.call(v, {self: true});
       }
       if (type === "Model")
         to[k] = ku._extract(v);
       if (type === "Collection")
-        to[k] = v.toJSON();
+        to[k] = ku._extract(v);
+        //to[k] = v.toJSON();
     });
 
     self._kubase = to;
-    self.trigger('kucompile');
+    ku._shared._kucompile.call(self, opts); //self.trigger('kucompile', opts);
   };
   ku._shared._kububble = function (o, opts) {
     opts || (opts = {});
@@ -144,7 +158,8 @@
 
         //assign _kuparent
         _.each(self.attributes, function (v) {
-          v._kuparent == self;
+          if(v instanceof Backbone.Model || v instanceof Backbone.Collection)
+            v._kuparent == self;
         });
         self.trigger('kuupdate', opts);
       };
@@ -165,6 +180,33 @@
 
       //self.trigger('kuupdate');
       ku._shared._kuupdate.call(self, {values: attrs})
+
+      //map events
+      if(opts.events) {
+        _.forEach(opts.events, function(events, method) {
+          _.forEach(events, function(cb, eventname) {
+            if(typeof cb === 'function')
+              self[method](eventname, cb);
+            if(Array.isArray(cb))
+              self[method].apply(self, cb);
+          });
+        });
+      }
+    }
+    ,set: function(key, val, options) {
+      if (key == null) return this;
+
+      // Handle both `"key", value` and `{key: value}` -style arguments.
+      if (typeof key === 'object') {
+        options = val;
+      }
+
+      options || (options = {});
+
+      if (options.fromko)
+        return this;
+
+      return Backbone.Model.prototype.set.apply(this, arguments);
     }
   });
 
@@ -172,7 +214,7 @@
     model: ku.Model
     ,constructor: function (models, opts) {
       var self = this;
-      models || (models = {});
+      models || (models = []);
       opts || (opts = {});
       Backbone.Collection.call(self, models, opts);
 
@@ -221,13 +263,55 @@
         changedModels(opts);
       })
     }
-    ,initialize: function (models, opts) {
+    ,initialize: function(models, opts) {
+      //Backbone.Collection.prototype.initialize.call(this, models, opts)
       var self = this;
       if (typeof self.get(self.idAttribute) === 'undefined')
         self.set(self.idAttribute, self.cid);
       self._kubase = ko.observableArray([]);
       self._ku = ko.mapping.fromJS(self._kubase);
       self.trigger('kuupdate', {values: self.models});
+
+      if(opts.events) {
+        _.forEach(opts.events, function(events, method) {
+          _.forEach(events, function(cb, eventname) {
+            if(typeof cb === 'function')
+              self[method](eventname, cb);
+            if(Array.isArray(cb))
+              self[method].apply(self, cb);
+          });
+        });
+      }
+    }
+    ,add: function(models, opts) {
+      opts || (opts = {});
+      if(opts.fromko)
+        return this;
+      return Backbone.Collection.prototype.add.apply(this, arguments);
+    }
+    ,remove: function(models, opts) {
+      opts || (opts = {});
+      if(opts.fromko)
+        return this;
+      return Backbone.Collection.prototype.remove.apply(this, arguments);
+    }
+    ,reset: function(models, opts) {
+      opts || (opts = {});
+      if(opts.fromko)
+        return this;
+      return Backbone.Collection.prototype.reset.apply(this, arguments);
+    }
+    ,push: function(model, opts) {
+      opts || (opts = {});
+      if(opts.fromko)
+        return this;
+      return Backbone.Collection.prototype.push.apply(this, arguments);
+    }
+    ,pop: function(opts) {
+      opts || (opts = {});
+      if(opts.fromko)
+        return this;
+      return Backbone.Collection.prototype.pop.apply(this, arguments);
     }
   })
 
@@ -267,7 +351,7 @@
     if (v instanceof Backbone.Collection) {
       return _.map(v.models, ku._extract);
     }
-    if (typeof v.__ko_proto__ !== 'undefined')
+    if (typeof v.__ko_proto__ !== 'undefined' || typeof v.__ko_mapping__ !== 'undefined')
       return ko.mapping.fromJS(v)
     else
       return v;
@@ -304,8 +388,9 @@
 
         if (typeof pv === 'function')
           return pv()[cv];
-        else if (typeof pv[cv] !== 'undefined')
+        else if (typeof pv !== 'undefined' && typeof pv[cv] !== 'undefined')
           return pv[cv];
+        else if(typeof pv === 'undefined');
         else
           throw "something went wrong. Send code and data samples to knockup on github.";
       }, koobj);
@@ -376,8 +461,9 @@
 
         if (typeof pv === 'function')
           return pv()[cv];
-        else if (typeof pv[cv] !== 'undefined')
+        else if (typeof pv !== 'undefined' && typeof pv[cv] !== 'undefined')
           return pv[cv];
+        else if(typeof pv === 'undefined');
         else
           throw "something went wrong. Send code and data samples to knockup on github.";
       }, koobj);

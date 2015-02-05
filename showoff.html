@@ -129,7 +129,34 @@
         </div>
       </div>
     </div>
-    <!-- /.row -->
+    <!-- /.row --><!-- /.row -->
+    <div id="test4" class="tests" _style="display:none;">
+      <div class="row">
+        <div class="col-lg-12" onclick="$('.tests').hide(); $('#test4').show()">
+          <span class="h2">Test #4: Collection inception</span>
+        </div>
+      </div>
+      <div class="row">
+        <div class="col-lg-6 text-center">
+          <div class="tools">
+            
+          </div>
+          <div class="content">
+            <div data-bind="foreach: {data: c, as: 'ci'} ">
+              <div>pgroup: <span data-bind="text: ci.id"></span></div>
+              <div data-bind="foreach: { data: ci.kids, as: 'ki'}">
+                <div>name: <span data-bind="text: ki.name"></span></div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="col-lg-6 text-left">
+          <div id="test2-bb" class="bboutput">
+            <pre></pre>
+          </div>
+        </div>
+      </div>
+    </div>
 
   </div>
   <!-- /.container -->

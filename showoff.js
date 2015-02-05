@@ -59,4 +59,39 @@
   _user.fetch().always(function() {
   });
   ku.applyBindings(m3, $('#test3 .content')[0]);
+
+
+  //test4
+  kidModel = ku.Model.extend();
+  kidModelCollection = ku.Collection.extend({
+    model: kidModel
+  });
+  familyModel = ku.Model.extend();
+  familyModelCollection = ku.Collection.extend({
+    model: familyModel
+  })
+  test4model = new ku.Model({
+    c: new familyModelCollection()
+  });
+  test4model.get('c').add(new familyModel());
+  
+  t41k = new kidModelCollection([{id: 1, name: "jet"}, {id: 2, name: "jo"}]);
+  test4model.get('c').add(new familyModel({kids: t41k}));
+  t40k = new kidModelCollection([{name: "walter"}, {name: "reed"}]);
+
+  dtrig = function() {
+    test4model.get('c').at(0).unset('kids');
+  }
+  trig = function trig() {
+    t40k = new kidModelCollection([{id: 1, name: "jet"}, {id: 2, name: "jo"}]);
+    test4model.get('c').at(0).set({'kids': t40k});
+    console.log(JSON.stringify(test4model.get('c').at(0).get('kids'), null, "\t"));
+    console.log(JSON.stringify(ko.mapping.toJS(test4model._ku().c()[0].kids), null, "\t"));
+  }
+  trig();
+  test4model._ku.jsko = function(o) {
+    return JSON.stringify(ko.mapping(o), null, "  ");
+  }
+  ku.applyBindings(test4model, $('#test4 .content')[0]);
+
 })();
