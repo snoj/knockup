@@ -5,7 +5,7 @@
   var ku = window.ku = new (function ku() {})();
   ku._shared = {};
   ku._shared.komapkey = function (idAttribute, d) {
-    if (d[idAttribute])
+    if (typeof d !== 'undefined' && typeof d[idAttribute] !== 'undefined')
       return ko.utils.unwrapObservable(d[idAttribute]);
     return;
   };
@@ -193,21 +193,6 @@
         });
       }
     }
-    ,set: function(key, val, options) {
-      if (key == null) return this;
-
-      // Handle both `"key", value` and `{key: value}` -style arguments.
-      if (typeof key === 'object') {
-        options = val;
-      }
-
-      options || (options = {});
-
-      if (options.fromko)
-        return this;
-
-      return Backbone.Model.prototype.set.apply(this, arguments);
-    }
   });
 
   ku.Collection = Backbone.Collection.extend({
@@ -286,31 +271,31 @@
     ,add: function(models, opts) {
       opts || (opts = {});
       if(opts.fromko)
-        return this;
+        opts.silent = true;
       return Backbone.Collection.prototype.add.apply(this, arguments);
     }
     ,remove: function(models, opts) {
       opts || (opts = {});
       if(opts.fromko)
-        return this;
+        opts.silent = true;
       return Backbone.Collection.prototype.remove.apply(this, arguments);
     }
     ,reset: function(models, opts) {
       opts || (opts = {});
       if(opts.fromko)
-        return this;
+        opts.silent = true;
       return Backbone.Collection.prototype.reset.apply(this, arguments);
     }
     ,push: function(model, opts) {
       opts || (opts = {});
       if(opts.fromko)
-        return this;
+        opts.silent = true;
       return Backbone.Collection.prototype.push.apply(this, arguments);
     }
     ,pop: function(opts) {
       opts || (opts = {});
       if(opts.fromko)
-        return this;
+        opts.silent = true;
       return Backbone.Collection.prototype.pop.apply(this, arguments);
     }
   })
