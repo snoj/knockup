@@ -1,14 +1,28 @@
 /*jslint browser: true , indent: 2, vars: true*/
 /*global ko*/
-(function () {
+(function(root, factory) {
+  //Shamefully ripped and modified from Backbone.
+  if (typeof exports !== 'undefined') {
+    var _ = require('underscore');
+    factory(root, exports, _);
+
+  // Finally, as a browser global.
+  } else {
+    root.ku = factory(root, Backbone, root._, (root.jQuery || root.Zepto || root.ender || root.$));
+  }
+})(this, function(root, Backbone, _, $) {
   'use strict';
-  var ku = window.ku = new (function ku() {})();
+
+  var ku = {}; // = root.ku = {};
+
   ku._shared = {};
+
   ku._shared.komapkey = function (idAttribute, d) {
-    if (typeof d !== 'undefined' && typeof d[idAttribute] !== 'undefined')
+    if (d[idAttribute])
       return ko.utils.unwrapObservable(d[idAttribute]);
     return;
   };
+
   ku._shared._kucompile = function (opts) {
     var self = this;
     opts || (opts = {});
@@ -193,6 +207,21 @@
         });
       }
     }
+    ,set: function(key, val, options) {
+      if (key == null) return this;
+
+      // Handle both `"key", value` and `{key: value}` -style arguments.
+      if (typeof key === 'object') {
+        options = val;
+      }
+
+      options || (options = {});
+
+      if (options.fromko)
+        return this;
+
+      return Backbone.Model.prototype.set.apply(this, arguments);
+    }
   });
 
   ku.Collection = Backbone.Collection.extend({
@@ -271,31 +300,31 @@
     ,add: function(models, opts) {
       opts || (opts = {});
       if(opts.fromko)
-        opts.silent = true;
+        return this;
       return Backbone.Collection.prototype.add.apply(this, arguments);
     }
     ,remove: function(models, opts) {
       opts || (opts = {});
       if(opts.fromko)
-        opts.silent = true;
+        return this;
       return Backbone.Collection.prototype.remove.apply(this, arguments);
     }
     ,reset: function(models, opts) {
       opts || (opts = {});
       if(opts.fromko)
-        opts.silent = true;
+        return this;
       return Backbone.Collection.prototype.reset.apply(this, arguments);
     }
     ,push: function(model, opts) {
       opts || (opts = {});
       if(opts.fromko)
-        opts.silent = true;
+        return this;
       return Backbone.Collection.prototype.push.apply(this, arguments);
     }
     ,pop: function(opts) {
       opts || (opts = {});
       if(opts.fromko)
-        opts.silent = true;
+        return this;
       return Backbone.Collection.prototype.pop.apply(this, arguments);
     }
   })
@@ -493,4 +522,6 @@
   ko.observable['fn'].isDifferent = function (oldValue, newValue) {
     return !_.isEqual(oldValue, newValue);
   };
-})();
+
+  return ku;
+});
