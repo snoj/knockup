@@ -18,8 +18,10 @@
   ku._shared = {};
 
   ku._shared.komapkey = function (idAttribute, d) {
-    if (d[idAttribute])
+    if (!!d[idAttribute])
       return ko.utils.unwrapObservable(d[idAttribute]);
+    else if (!!d._kuid)
+      return ko.utils.unwrapObservable(d._kuid);
     return;
   };
 
@@ -187,7 +189,7 @@
       var self = this;
 
       if (typeof self.get(self.idAttribute) === 'undefined')
-        self.set(self.idAttribute, self.cid);
+        self.set('_kuid', self.cid);
 
       self._kubase = ko.observable({});
       self._ku = ko.mapping.fromJS(self._kubase);
@@ -281,7 +283,7 @@
       //Backbone.Collection.prototype.initialize.call(this, models, opts)
       var self = this;
       if (typeof self.get(self.idAttribute) === 'undefined')
-        self.set(self.idAttribute, self.cid);
+        self.set('_kuid', self.cid);
       self._kubase = ko.observableArray([]);
       self._ku = ko.mapping.fromJS(self._kubase);
       self.trigger('kuupdate', {values: self.models});
